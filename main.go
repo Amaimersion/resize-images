@@ -28,7 +28,8 @@ func main() {
 	fsys := os.DirFS(cfg.sourcePath)
 	err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			fmt.Fprintln(os.Stderr, err)
+			return fs.SkipDir
 		}
 
 		workers <- struct{}{}

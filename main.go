@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -24,24 +23,24 @@ func main() {
 	}
 
 	var wg sync.WaitGroup
-	guard := make(chan struct{}, cfg.maxThreads)
+	workers := make(chan struct{}, cfg.maxThreads)
 
-	fileSystem := os.DirFS(cfg.sourcePath)
-	err := fs.WalkDir(fileSystem, ".", func(p string, d fs.DirEntry, err error) error {
+	fsys := os.DirFS(cfg.sourcePath)
+	err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		guard <- struct{}{}
+		workers <- struct{}{}
 
 		wg.Add(1)
 		go func() {
 			defer func() {
-				<-guard
+				<-workers
 				wg.Done()
 			}()
 
-			imgPath := filepath.Join(cfg.sourcePath, p)
+			imgPath := filepath.Join(cfg.sourcePath, path)
 			img, err := imaging.Open(imgPath)
 
 			if err != nil {
@@ -49,7 +48,7 @@ func main() {
 				return
 			}
 
-			newImgPath := filepath.Join(cfg.destPath, p)
+			newImgPath := filepath.Join(cfg.destPath, path)
 			newImgDir := strings.TrimSuffix(newImgPath, filepath.Base(newImgPath))
 
 			if err := os.MkdirAll(newImgDir, os.ModePerm); err != nil {
@@ -80,7 +79,8 @@ func main() {
 	wg.Wait()
 
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }
 

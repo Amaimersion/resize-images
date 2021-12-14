@@ -32,6 +32,10 @@ func main() {
 			return fs.SkipDir
 		}
 
+		if d.IsDir() {
+			return nil
+		}
+
 		workers <- struct{}{}
 
 		wg.Add(1)

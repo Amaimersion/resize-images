@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -17,7 +18,8 @@ import (
 func main() {
 	cfg := parseFlags()
 
-	if len(cfg.sourcePath) == 0 || len(cfg.destPath) == 0 {
+	if err := cfg.isValid(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -87,6 +89,18 @@ type config struct {
 	destPath   string
 	maxThreads int
 	maxWidth   int
+}
+
+func (c config) isValid() error {
+	if len(c.sourcePath) == 0 {
+		return errors.New("source path must be specified")
+	}
+
+	if len(c.destPath) == 0 {
+		return errors.New("destination path must be specified")
+	}
+
+	return nil
 }
 
 func parseFlags() config {

@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -14,38 +15,16 @@ import (
 )
 
 func main() {
-	var root string
-	var dest string
-	var maxGoroutines int
+	cfg := parseFlags()
 
-	flag.StringVar(
-		&root,
-		"root",
-		"",
-		"Root",
-	)
-	flag.StringVar(
-		&dest,
-		"dest",
-		"",
-		"Dest",
-	)
-	flag.IntVar(
-		&maxGoroutines,
-		"threads",
-		10,
-		"Max threads",
-	)
-	flag.Parse()
-
-	if len(root) == 0 || len(dest) == 0 {
+	if len(cfg.sourcePath) == 0 || len(cfg.destPath) == 0 {
 		os.Exit(1)
 	}
 
 	var wg sync.WaitGroup
-	guard := make(chan struct{}, maxGoroutines)
+	guard := make(chan struct{}, cfg.maxThreads)
 
-	fileSystem := os.DirFS(root)
+	fileSystem := os.DirFS(cfg.sourcePath)
 	err := fs.WalkDir(fileSystem, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -60,7 +39,7 @@ func main() {
 				wg.Done()
 			}()
 
-			imgPath := filepath.Join(root, p)
+			imgPath := filepath.Join(cfg.sourcePath, p)
 			img, err := imaging.Open(imgPath)
 
 			if err != nil {
@@ -68,7 +47,7 @@ func main() {
 				return
 			}
 
-			newImgPath := filepath.Join(dest, p)
+			newImgPath := filepath.Join(cfg.destPath, p)
 			newImgDir := strings.TrimSuffix(newImgPath, filepath.Base(newImgPath))
 
 			if err := os.MkdirAll(newImgDir, os.ModePerm); err != nil {
@@ -101,4 +80,44 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+type config struct {
+	sourcePath string
+	destPath   string
+	maxThreads int
+	maxWidth   int
+}
+
+func parseFlags() config {
+	cfg := config{}
+
+	flag.StringVar(
+		&cfg.sourcePath,
+		"source",
+		"",
+		"Path to source folder.",
+	)
+	flag.StringVar(
+		&cfg.destPath,
+		"dest",
+		"",
+		"Path to destination folder.",
+	)
+	flag.IntVar(
+		&cfg.maxThreads,
+		"threads",
+		runtime.NumCPU(),
+		"Maximum number of images that will be processed concurrently.",
+	)
+	flag.IntVar(
+		&cfg.maxWidth,
+		"width",
+		1920,
+		"Result image width will be no more than this value.",
+	)
+
+	flag.Parse()
+
+	return cfg
 }

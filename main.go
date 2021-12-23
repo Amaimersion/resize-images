@@ -37,44 +37,23 @@ func main() {
 		}
 
 		workers <- struct{}{}
-
 		wg.Add(1)
+
 		go func() {
 			defer func() {
 				<-workers
 				wg.Done()
 			}()
 
-			imgPath := filepath.Join(cfg.sourcePath, path)
-			img, err := imaging.Open(imgPath)
-
-			if err != nil {
-				fmt.Printf("%s: %s\n", imgPath, err)
-				return
+			args := resizeImageArgs{
+				sourcePath: cfg.sourcePath,
+				destPath:   cfg.destPath,
+				imageName:  path,
+				maxWidth:   cfg.maxWidth,
 			}
 
-			newImgPath := filepath.Join(cfg.destPath, path)
-			newImgDir := strings.TrimSuffix(newImgPath, filepath.Base(newImgPath))
-
-			if err := os.MkdirAll(newImgDir, os.ModePerm); err != nil {
-				fmt.Printf("%s: %s\n", newImgPath, err)
-				return
-			}
-
-			if width := img.Bounds().Max.X; width > 1600 {
-				newImg := imaging.Resize(img, 1600, 0, imaging.Lanczos)
-
-				if err := imaging.Save(newImg, newImgPath); err == nil {
-					fmt.Printf("Resized: %v\n", imgPath)
-				} else {
-					fmt.Printf("%s: %s\n", newImgPath, err)
-				}
-			} else {
-				if err := imaging.Save(img, newImgPath); err == nil {
-					fmt.Printf("Not modified: %v\n", imgPath)
-				} else {
-					fmt.Printf("%s: %s\n", newImgPath, err)
-				}
+			if err := resizeImage(args); err != nil {
+				fmt.Fprintln(os.Stderr, err)
 			}
 		}()
 
@@ -139,4 +118,45 @@ func parseFlags() config {
 	flag.Parse()
 
 	return cfg
+}
+
+type resizeImageArgs struct {
+	sourcePath string
+	destPath   string
+	imageName  string
+	maxWidth   int
+}
+
+func resizeImage(args resizeImageArgs) error {
+	imgPath := filepath.Join(args.sourcePath, args.imageName)
+	img, err := imaging.Open(imgPath)
+
+	if err != nil {
+		return err
+	}
+
+	newImgPath := filepath.Join(args.destPath, args.imageName)
+	newImgDir := strings.TrimSuffix(newImgPath, filepath.Base(newImgPath))
+
+	if err := os.MkdirAll(newImgDir, os.ModePerm); err != nil {
+		return err
+	}
+
+	if width := img.Bounds().Max.X; width > args.maxWidth {
+		newImg := imaging.Resize(img, args.maxWidth, 0, imaging.Lanczos)
+
+		if err := imaging.Save(newImg, newImgPath); err != nil {
+			return err
+		}
+
+		fmt.Printf("Resized: %v\n", imgPath)
+	} else {
+		if err := imaging.Save(img, newImgPath); err != nil {
+			return err
+		}
+
+		fmt.Printf("Not modified: %v\n", imgPath)
+	}
+
+	return nil
 }

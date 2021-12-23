@@ -120,7 +120,7 @@ func parseFlags() config {
 		&cfg.jpgQuality,
 		"quality",
 		100,
-		"Result image will have this quality. From 0 to 100. Only applied to JPG images.",
+		"Result image will have this quality. From 1 to 100. Only applied to JPG images.",
 	)
 
 	flag.Parse()

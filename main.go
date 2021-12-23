@@ -141,25 +141,25 @@ func resizeImage(args resizeImageArgs) error {
 	img, err := imaging.Open(imgPath)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %v: %v", args.imageName, err)
 	}
 
 	if width := img.Bounds().Max.X; width > args.maxWidth {
 		img = imaging.Resize(img, args.maxWidth, 0, imaging.Lanczos)
-		fmt.Printf("Resized: %v\n", args.imageName)
+		fmt.Printf("resized: %v\n", args.imageName)
 	} else {
-		fmt.Printf("Not resized: %v\n", args.imageName)
+		fmt.Printf("not resized: %v\n", args.imageName)
 	}
 
 	newImgPath := filepath.Join(args.destPath, args.imageName)
 	newImgDir := strings.TrimSuffix(newImgPath, filepath.Base(newImgPath))
 
 	if err := os.MkdirAll(newImgDir, os.ModePerm); err != nil {
-		return err
+		return fmt.Errorf("error: %v: %v", args.imageName, err)
 	}
 
 	if err := imaging.Save(img, newImgPath, imaging.JPEGQuality(args.jpgQuality)); err != nil {
-		return err
+		return fmt.Errorf("error: %v: %v", args.imageName, err)
 	}
 
 	return nil

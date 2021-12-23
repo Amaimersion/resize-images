@@ -135,6 +135,13 @@ func resizeImage(args resizeImageArgs) error {
 		return err
 	}
 
+	if width := img.Bounds().Max.X; width > args.maxWidth {
+		img = imaging.Resize(img, args.maxWidth, 0, imaging.Lanczos)
+		fmt.Printf("Resized: %v\n", args.imageName)
+	} else {
+		fmt.Printf("Not resized: %v\n", args.imageName)
+	}
+
 	newImgPath := filepath.Join(args.destPath, args.imageName)
 	newImgDir := strings.TrimSuffix(newImgPath, filepath.Base(newImgPath))
 
@@ -142,20 +149,8 @@ func resizeImage(args resizeImageArgs) error {
 		return err
 	}
 
-	if width := img.Bounds().Max.X; width > args.maxWidth {
-		newImg := imaging.Resize(img, args.maxWidth, 0, imaging.Lanczos)
-
-		if err := imaging.Save(newImg, newImgPath); err != nil {
-			return err
-		}
-
-		fmt.Printf("Resized: %v\n", imgPath)
-	} else {
-		if err := imaging.Save(img, newImgPath); err != nil {
-			return err
-		}
-
-		fmt.Printf("Not modified: %v\n", imgPath)
+	if err := imaging.Save(img, newImgPath); err != nil {
+		return err
 	}
 
 	return nil

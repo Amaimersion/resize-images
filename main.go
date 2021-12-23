@@ -112,7 +112,7 @@ func parseFlags() config {
 		&cfg.maxWidth,
 		"width",
 		1920,
-		"Result image width will be no more than this value.",
+		"Result image width will be not more than this value.",
 	)
 
 	flag.Parse()

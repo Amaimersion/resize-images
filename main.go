@@ -50,6 +50,7 @@ func main() {
 				destPath:   cfg.destPath,
 				imageName:  path,
 				maxWidth:   cfg.maxWidth,
+				jpgQuality: cfg.jpgQuality,
 			}
 
 			if err := resizeImage(args); err != nil {
@@ -73,6 +74,7 @@ type config struct {
 	destPath   string
 	maxThreads int
 	maxWidth   int
+	jpgQuality int
 }
 
 func (c config) isValid() error {
@@ -114,6 +116,12 @@ func parseFlags() config {
 		1920,
 		"Result image width will be not more than this value.",
 	)
+	flag.IntVar(
+		&cfg.jpgQuality,
+		"jpgQuality",
+		100,
+		"Result JPG image will have this quality. From 0 to 100.",
+	)
 
 	flag.Parse()
 
@@ -125,6 +133,7 @@ type resizeImageArgs struct {
 	destPath   string
 	imageName  string
 	maxWidth   int
+	jpgQuality int
 }
 
 func resizeImage(args resizeImageArgs) error {
@@ -149,7 +158,7 @@ func resizeImage(args resizeImageArgs) error {
 		return err
 	}
 
-	if err := imaging.Save(img, newImgPath); err != nil {
+	if err := imaging.Save(img, newImgPath, imaging.JPEGQuality(args.jpgQuality)); err != nil {
 		return err
 	}
 
